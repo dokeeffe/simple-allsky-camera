@@ -71,4 +71,11 @@ if __name__ == '__main__':
     camera = asi.Camera(0)
     camera.set_control_value(asi.ASI_BANDWIDTHOVERLOAD, camera.get_controls()['BandWidth']['MinValue'])
     minexp, maxexp = MIN_EXPOSURE, MAX_EXPOSURE
-    take_exposure(camera)
+    try:
+        while True:
+            take_exposure(camera)
+            time.sleep(6)
+    except KeyboardInterrupt:
+        print('Manual break by user')
+    except asi.ZWO_CaptureError:
+        print('Problem capturing')
