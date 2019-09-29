@@ -9,13 +9,13 @@ echo $DIR
 
 if [[ -z "${ZWO_ASI_LIB}" ]]; then
   echo "Setting up ZWO_ASI_LIB env var in user env"
-  bashrc_line="export ZWO_ASI_LIB=${DIR}/lib/libASICamera2.so.1.14.0715"
+  bashrc_line="export ZWO_ASI_LIB=${DIR}/asilib/libASICamera2.so.1.14.0715"
   echo $bashrc_line >> ~/.bashrc
 else
   echo "ZWO_ASI_LIB env already set"
 fi
 
-sudo install lib/asi.rules /lib/udev/rules.d
+sudo install asilib/asi.rules /lib/udev/rules.d
 
 echo "Creating startup entry"
 
