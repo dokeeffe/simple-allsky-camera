@@ -25,11 +25,12 @@ class AllSkyCamera:
         handler.setFormatter(formatter)
         logger.addHandler(handler)
         config = ConfigParser.RawConfigParser()
-        config.read('allsky.cfg')
+        config.read(sys.path[0]+'/allsky.cfg')
         self.image_mean = config.getint('AllSky', 'target_image_mean')
         self.min_exposure = config.getint('AllSky', 'min_exposure')
         self.max_exposure = config.getint('AllSky', 'max_exposure')
-        self.image_dir = config.getint('AllSky', 'image_dir')
+        self.image_dir = config.get('AllSky', 'image_dir')
+        self.zwo_asi_lib = config.get('AllSky', 'zwo_asi_lib')
         self.lower_image_mean = self.image_mean * 0.8
         self.upper_image_mean = self.image_mean * 1.2
         self.inter_exposure_delay_seconds = config.getint('AllSky', 'inter_exposure_delay_seconds')
@@ -73,10 +74,11 @@ class AllSkyCamera:
         logging.info('auto expose determined exp {}'.format(exptime))
         return exptime
 
+    def build_filename(self):
+        return '{}/allsky-{}.jpg'.format(self.image_dir, datetime.datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S"))
+
     def main1(self):
-        filename = '{}/allsky-{}.jpg'.format(self.image_dir, datetime.datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S"))
-        env_filename = os.getenv('ZWO_ASI_LIB')
-        asi.init(env_filename)
+        asi.init(self.zwo_asi_lib)
         num_cameras = asi.get_num_cameras()
         if num_cameras == 0:
             logging.error('No cameras found')
@@ -85,7 +87,7 @@ class AllSkyCamera:
         camera.set_control_value(asi.ASI_BANDWIDTHOVERLOAD, camera.get_controls()['BandWidth']['MinValue'])
         try:
             while True:
-                self.take_exposure(camera, filename)
+                self.take_exposure(camera, self.build_filename())
                 time.sleep(self.inter_exposure_delay_seconds)
         except KeyboardInterrupt:
             print('Manual break by user')
