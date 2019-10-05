@@ -3,7 +3,7 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 echo "installing dependencies"
-#pip install -r requirements.txt --user
+pip install -r requirements.txt --user
 
 echo $DIR
 
@@ -15,6 +15,7 @@ else
   echo "ZWO_ASI_LIB env already set"
 fi
 
+echo "installing asi udev rules"
 sudo install asilib/asi.rules /lib/udev/rules.d
 
 echo "Creating startup entry"
