@@ -1,0 +1,7 @@
+[AllSky]
+target_image_mean = 100
+image_dir = /home/pi/Pictures
+min_exposure = 500
+max_exposure = 30000000
+inter_exposure_delay_seconds = 60
+zwo_asi_lib = ZWOASILIB_PATH
