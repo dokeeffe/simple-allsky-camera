@@ -11,15 +11,13 @@ import pickle
 import datetime
 import PIL
 import numpy as np
-import math
-from ConfigParser import SafeConfigParser
 from logging.handlers import SysLogHandler
 import logging
 import ConfigParser
 
 class AllSkyCamera:
 
-    def __init__():
+    def __init__(self):
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
         handler = logging.handlers.SysLogHandler(address = '/dev/log')
@@ -36,47 +34,46 @@ class AllSkyCamera:
         self.upper_image_mean = self.image_mean * 1.2
         self.inter_exposure_delay_seconds = config.getint('AllSky', 'inter_exposure_delay_seconds')
 
-    def take_exposure(camera):
+    def take_exposure(self, camera, filename):
         auto_exp_measurements = []
         try:
             exptime = pickle.load( open( "/tmp/all_sky_exp_time.p", "rb" ) )
         except (IOError):
-            logging.warn('Could not load previous exposure time. Setting to min exposure')
-            exptime = minexp
+            logging.warning('Could not load previous exposure time. Setting to min exposure')
+            exptime = self.min_exposure
         while True:
             if len(auto_exp_measurements) > 1:
-                exptime = determine_optimum_exposure(auto_exp_measurements)
+                exptime = self.determine_optimum_exposure(auto_exp_measurements)
             logging.info('Capturing a single 8-bit mono image exposure {} seconds'.format(int(exptime/1000000)))
             camera.set_image_type(asi.ASI_IMG_RAW8)
             camera.set_control_value(asi.ASI_EXPOSURE, exptime)
             camera.capture(filename=filename)
-            mean = calculate_mean(filename)
+            mean = self.calculate_mean(filename)
             auto_exp_measurements.append([exptime, mean])
-            if mean > LOWER_IMAGE_MEAN and mean < UPPER_IMAGE_MEAN:
+            if mean > self.lower_image_mean and mean < self.upper_image_mean:
                 logging.info('exposure complete, saving exposure time for next image')
                 pickle.dump( exptime, open( "/tmp/all_sky_exp_time.p", "wb" ) )
                 break
             elif len(auto_exp_measurements) < 2:
                 exptime = int(exptime * 1.2)
 
-    def calculate_mean(image):
+    def calculate_mean(self, image):
         img = PIL.Image.open(image).convert("L")
         imgarr = np.array(img)
         return np.mean(imgarr)
 
-    def determine_optimum_exposure(auto_exp_measurements):
-        self.logging.info
+    def determine_optimum_exposure(self, auto_exp_measurements):
         x = [float(row[0]) for row in auto_exp_measurements]
         y = [float(row[1]) for row in auto_exp_measurements]
         A = np.vstack([x, np.ones(len(x))]).T
         m, c = np.linalg.lstsq(A, y, rcond=None)[0]
-        exptime = int((DESIRED_IMAGE_MEAN-c)/m)
-        if exptime > MAX_EXPOSURE:
-            exptime = MAX_EXPOSURE
+        exptime = int((self.image_mean- c)/m)
+        if exptime > self.max_exposure:
+            exptime = self.max_exposure
         logging.info('auto expose determined exp {}'.format(exptime))
         return exptime
 
-    def main1():
+    def main1(self):
         filename = '{}/allsky-{}.jpg'.format(self.image_dir, datetime.datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S"))
         env_filename = os.getenv('ZWO_ASI_LIB')
         asi.init(env_filename)
@@ -86,14 +83,14 @@ class AllSkyCamera:
             sys.exit(0)
         camera = asi.Camera(0)
         camera.set_control_value(asi.ASI_BANDWIDTHOVERLOAD, camera.get_controls()['BandWidth']['MinValue'])
-        minexp, maxexp = MIN_EXPOSURE, MAX_EXPOSURE
         try:
             while True:
-                take_exposure(camera)
+                self.take_exposure(camera, filename)
                 time.sleep(self.inter_exposure_delay_seconds)
         except KeyboardInterrupt:
             print('Manual break by user')
-        except asi.ZWO_CaptureError:
+        except asi.ZWO_CaptureError as e:
+            logging.error('Error capturing' + str(e))
 
 
 if __name__ == '__main__':
